@@ -10,4 +10,7 @@ class IndexController extends Controller {
     public function article(){
         $this->display();
     }
+    
+    
+    
 }
