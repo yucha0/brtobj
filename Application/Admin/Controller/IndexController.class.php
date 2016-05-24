@@ -6,11 +6,4 @@ class IndexController extends Controller {
 
         $this->display();
     }
-    
-    public function article(){
-        $this->display();
-    }
-    
-    
-    
 }

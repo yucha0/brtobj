@@ -15,6 +15,24 @@ namespace Think;
 class App {
 
     /**
+     * 运行应用实例 入口文件使用的快捷方法
+     * @access public
+     * @return void
+     */
+    static public function run()
+    {
+        App::init();
+        // Session初始化
+        if (!IS_CLI) {
+            session(C('SESSION_OPTIONS'));
+        }
+        // 记录应用初始化时间
+        G('initTime');
+        App::exec();
+        return;
+    }
+
+    /**
      * 应用程序初始化
      * @access public
      * @return void
@@ -133,23 +151,6 @@ class App {
             $method = new \ReflectionMethod($module,'__call');
             $method->invokeArgs($module,array($action,''));
         }
-        return ;
-    }
-
-    /**
-     * 运行应用实例 入口文件使用的快捷方法
-     * @access public
-     * @return void
-     */
-    static public function run() {
-        App::init();
-        // Session初始化
-        if(!IS_CLI){
-            session(C('SESSION_OPTIONS'));
-        }
-        // 记录应用初始化时间
-        G('initTime');
-        App::exec();
         return ;
     }
 

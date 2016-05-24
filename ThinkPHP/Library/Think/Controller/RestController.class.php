@@ -61,36 +61,6 @@ class RestController extends Controller {
     }
 
     /**
-     * 魔术方法 有不存在的操作的时候执行
-     * @access public
-     * @param string $method 方法名
-     * @param array $args 参数
-     * @return mixed
-     */
-    public function __call($method,$args) {
-        if( 0 === strcasecmp($method,ACTION_NAME.C('ACTION_SUFFIX'))) {
-            if(method_exists($this,$method.'_'.$this->_method.'_'.$this->_type)) { // RESTFul方法支持
-                $fun  =  $method.'_'.$this->_method.'_'.$this->_type;
-                App::invokeAction($this,$fun);
-            }elseif($this->_method == $this->defaultMethod && method_exists($this,$method.'_'.$this->_type) ){
-                $fun  =  $method.'_'.$this->_type;
-                App::invokeAction($this,$fun);
-            }elseif($this->_type == $this->defaultType && method_exists($this,$method.'_'.$this->_method) ){
-                $fun  =  $method.'_'.$this->_method;
-                App::invokeAction($this,$fun);
-            }elseif(method_exists($this,'_empty')) {
-                // 如果定义了_empty操作 则调用
-                $this->_empty($method,$args);
-            }elseif(file_exists_case($this->view->parseTemplate())){
-                // 检查是否存在默认模版 如果有直接输出模版
-                $this->display();
-            }else{
-                E(L('_ERROR_ACTION_').':'.ACTION_NAME);
-            }
-        }
-    }
-
-    /**
      * 获取当前请求的Accept头信息
      * @return string
      */
@@ -123,7 +93,53 @@ class RestController extends Controller {
         return false;
     }
 
+    /**
+     * 魔术方法 有不存在的操作的时候执行
+     * @access public
+     * @param string $method 方法名
+     * @param array $args 参数
+     * @return mixed
+     */
+    public function __call($method, $args)
+    {
+        if (0 === strcasecmp($method, ACTION_NAME . C('ACTION_SUFFIX'))) {
+            if (method_exists($this, $method . '_' . $this->_method . '_' . $this->_type)) { // RESTFul方法支持
+                $fun = $method . '_' . $this->_method . '_' . $this->_type;
+                App::invokeAction($this, $fun);
+            } elseif ($this->_method == $this->defaultMethod && method_exists($this, $method . '_' . $this->_type)) {
+                $fun = $method . '_' . $this->_type;
+                App::invokeAction($this, $fun);
+            } elseif ($this->_type == $this->defaultType && method_exists($this, $method . '_' . $this->_method)) {
+                $fun = $method . '_' . $this->_method;
+                App::invokeAction($this, $fun);
+            } elseif (method_exists($this, '_empty')) {
+                // 如果定义了_empty操作 则调用
+                $this->_empty($method, $args);
+            } elseif (file_exists_case($this->view->parseTemplate())) {
+                // 检查是否存在默认模版 如果有直接输出模版
+                $this->display();
+            } else {
+                E(L('_ERROR_ACTION_') . ':' . ACTION_NAME);
+            }
+        }
+    }
+
     // 发送Http状态信息
+
+    /**
+     * 输出返回数据
+     * @access protected
+     * @param mixed $data 要返回的数据
+     * @param String $type 返回类型 JSON XML
+     * @param integer $code HTTP状态
+     * @return void
+     */
+    protected function response($data, $type = '', $code = 200)
+    {
+        $this->sendHttpStatus($code);
+        exit($this->encodeData($data, strtolower($type)));
+    }
+
     protected function sendHttpStatus($code) {
         static $_status = array(
             // Informational 1xx
@@ -217,18 +233,5 @@ class RestController extends Controller {
         $type = strtolower($type);
         if(isset($this->allowOutputType[$type])) //过滤content_type
             header('Content-Type: '.$this->allowOutputType[$type].'; charset='.$charset);
-    }
-
-    /**
-     * 输出返回数据
-     * @access protected
-     * @param mixed $data 要返回的数据
-     * @param String $type 返回类型 JSON XML
-     * @param integer $code HTTP状态
-     * @return void
-     */
-    protected function response($data,$type='',$code=200) {
-        $this->sendHttpStatus($code);
-        exit($this->encodeData($data,strtolower($type)));
     }
 }

@@ -65,6 +65,26 @@ class Local{
     }
 
     /**
+     * 创建目录
+     * @param  string $savepath 要创建的穆里
+     * @return boolean          创建状态，true-成功，false-失败
+     */
+    public function mkdir($savepath)
+    {
+        $dir = $this->rootPath . $savepath;
+        if (is_dir($dir)) {
+            return true;
+        }
+
+        if (mkdir($dir, 0777, true)) {
+            return true;
+        } else {
+            $this->error = "目录 {$savepath} 创建失败！";
+            return false;
+        }
+    }
+
+    /**
      * 保存指定文件
      * @param  array   $file    保存的文件信息
      * @param  boolean $replace 同名文件是否覆盖
@@ -86,25 +106,6 @@ class Local{
         }
         
         return true;
-    }
-
-    /**
-     * 创建目录
-     * @param  string $savepath 要创建的穆里
-     * @return boolean          创建状态，true-成功，false-失败
-     */
-    public function mkdir($savepath){
-        $dir = $this->rootPath . $savepath;
-        if(is_dir($dir)){
-            return true;
-        }
-
-        if(mkdir($dir, 0777, true)){
-            return true;
-        } else {
-            $this->error = "目录 {$savepath} 创建失败！";
-            return false;
-        }
     }
 
     /**
