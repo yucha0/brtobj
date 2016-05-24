@@ -14,7 +14,8 @@
 
         html {
             height: 100%;
-            background: #f5f5f5;
+            /*background: #f5f5f5;*/
+            background-color: #ededed;
         }
 
         html, body {
@@ -67,7 +68,7 @@
         #navi-board {
 
             border-radius: 10px;
-            background-color: white;
+            background-color: #fdffe7;
 
             box-shadow: 0 0 0 1px rgba(0, 0, 0, .02), 0 4px 10px rgba(0, 0, 0, .06);
 
@@ -75,7 +76,7 @@
 
         #content-board {
             border-radius: 10px;
-            background-color: white;
+            background-color: #fdffe7;
             box-shadow: 0 0 0 1px rgba(0, 0, 0, .02), 0 4px 10px rgba(0, 0, 0, .06);
             margin-left: 20px;
 
@@ -101,7 +102,7 @@
         #footer p {
             width: 30em;
             border-radius: 10px;
-            background-color: white;
+            background-color: #fdffe7;
             box-shadow: 0 0 0 1px rgba(0, 0, 0, .02), 0 4px 10px rgba(0, 0, 0, .06);
             color: black;
             margin: 0 auto;
@@ -118,7 +119,7 @@
 
         #navi-board .portrait img {
             max-width: 100px;
-            border: 1px solid #eee;
+            border: 1px solid #ccc;
             border-radius: 100%;
         }
 
@@ -188,7 +189,7 @@
         }
 
         #navi-board .category-grid div + div {
-            border-left: 1px solid #eee;
+            border-left: 1px solid #ccc;
         }
 
         #navi-board .category-grid div span {
@@ -216,7 +217,7 @@
         }
 
         #navi-board ul li {
-            border-top: 1px solid #eee;
+            border-top: 1px solid #ccc;
         }
 
         #navi-board ul li a {
@@ -233,8 +234,9 @@
         }
 
         #navi-board .search-form {
-            border-top: 1px solid #eee;
+            border-top: 1px solid #ccc;
             margin-bottom: 0;
+
         }
 
         #navi-board .search-form input:hover {
@@ -266,11 +268,11 @@
             border-radius: 0px 0px 10px 10px;
             font: inherit;
             color: inherit;
-
+            background-color: #fdffe7;
         }
 
         #content-board {
-            background: #fff;
+            background: #fdffe7;
             margin-bottom: 20px;
             border-radius: 10px;
             overflow: hidden;
@@ -282,7 +284,7 @@
             text-transform: none;
             display: block;
             padding: 15px 30px;
-            border-bottom: 1px solid #EEE;
+            border-bottom: 1px solid #ccc;
             box-shadow: 0 2px 5px -1px rgba(0, 0, 0, .05);
             background-image: linear-gradient(rgba(200, 200, 200, 0), rgba(200, 200, 200, .12));
             color: rgba(0, 0, 0, .4);
@@ -308,7 +310,7 @@
 
         #content-board .index-list .article + .article {
             padding-top: 30px;
-            border-top: 1px solid #eee;
+            border-top: 1px solid #ccc;
         }
 
         #content-board .index-list .article h1 {
@@ -359,6 +361,7 @@
             text-align: center;
             font-size: 0;
             margin-top: 15px;
+
         }
         #pager-board:before{
             content: "";
@@ -393,6 +396,7 @@
         #pager-board>li>a {
             /*background: #f5f5f5;*/
             background: #fff;
+            background-color: #fdffe7;
             color: #444;
             text-shadow: 0 1px 0 #fff
         }
@@ -414,7 +418,7 @@
         }
 
         #pager-board>li> a:active {
-            background-color: #eee;
+            background-color: #ccc;
             color: #444
         }
 
@@ -451,10 +455,9 @@
                     <a href="#" style="">Works</a></li>
             </ul>
             <form class="search-form" method="get" action="#">
-                <input stype="text" placeholder="Search">
+                <input type="text" placeholder="Search">
             </form>
         </div>
-
     </div>
 
     <div id="container-right" class="brt-width-large-4-5 brt-width-medium-3-4">
@@ -579,10 +582,10 @@
     </div>
 </div>
 
-<script type="text/javascript" src="/brtobj/Public/js/canvas.js"></script>
+<!--<script type="text/javascript" src="/brtobj/Public/js/canvas.js"></script>-->
 </div>
-<footer id="footer">
-    <p> Brtobj 版权所有&copy; 2016</p>
-</footer>
+<!--<footer id="footer">-->
+    <!--<p> Brtobj 版权所有&copy; 2016</p>-->
+<!--</footer>-->
 </body>
 </html>

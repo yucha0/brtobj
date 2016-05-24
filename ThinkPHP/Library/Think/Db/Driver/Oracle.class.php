@@ -17,22 +17,8 @@ use Think\Db\Driver;
  */
 class Oracle extends Driver{
 
-    private     $table        = '';
     protected   $selectSql    = 'SELECT * FROM (SELECT thinkphp.*, rownum AS numrow FROM (SELECT  %DISTINCT% %FIELD% FROM %TABLE%%JOIN%%WHERE%%GROUP%%HAVING%%ORDER%) thinkphp ) %LIMIT%%COMMENT%';
-
-    /**
-     * 解析pdo连接的dsn信息
-     * @access public
-     * @param array $config 连接信息
-     * @return string
-     */
-    protected function parseDsn($config){
-        $dsn  =   'oci:dbname=//'.$config['hostname'].($config['hostport']?':'.$config['hostport']:'').'/'.$config['database'];
-        if(!empty($config['charset'])) {
-            $dsn  .= ';charset='.$config['charset'];
-        }
-        return $dsn;
-    }
+    private $table = '';
 
     /**
      * 执行语句
@@ -91,6 +77,17 @@ class Oracle extends Driver{
     }
 
     /**
+     * SQL指令安全过滤
+     * @access public
+     * @param string $str SQL指令
+     * @return string
+     */
+    public function escapeString($str)
+    {
+        return str_ireplace("'", "''", $str);
+    }
+
+    /**
      * 取得数据表的字段信息
      * @access public
      */
@@ -130,16 +127,6 @@ class Oracle extends Driver{
     }
 
     /**
-     * SQL指令安全过滤
-     * @access public
-     * @param string $str  SQL指令
-     * @return string
-     */
-    public function escapeString($str) {
-        return str_ireplace("'", "''", $str);
-    }
-
-    /**
      * limit
      * @access public
      * @return string
@@ -154,6 +141,21 @@ class Oracle extends Driver{
                 $limitStr = "(numrow>0 AND numrow<=".$limit[0].")";
         }
         return $limitStr?' WHERE '.$limitStr:'';
+    }
+
+    /**
+     * 解析pdo连接的dsn信息
+     * @access public
+     * @param array $config 连接信息
+     * @return string
+     */
+    protected function parseDsn($config)
+    {
+        $dsn = 'oci:dbname=//' . $config['hostname'] . ($config['hostport'] ? ':' . $config['hostport'] : '') . '/' . $config['database'];
+        if (!empty($config['charset'])) {
+            $dsn .= ';charset=' . $config['charset'];
+        }
+        return $dsn;
     }
 
     /**

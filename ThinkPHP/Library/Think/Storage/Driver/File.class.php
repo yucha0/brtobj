@@ -23,6 +23,21 @@ class File extends Storage{
     }
 
     /**
+     * 文件追加写入
+     * @access public
+     * @param string $filename 文件名
+     * @param string $content 追加的文件内容
+     * @return boolean
+     */
+    public function append($filename, $content, $type = '')
+    {
+        if (is_file($filename)) {
+            $content = $this->read($filename, $type) . $content;
+        }
+        return $this->put($filename, $content, $type);
+    }
+
+    /**
      * 文件内容读取
      * @access public
      * @param string $filename  文件名
@@ -30,6 +45,27 @@ class File extends Storage{
      */
     public function read($filename,$type=''){
         return $this->get($filename,'content',$type);
+    }
+
+    /**
+     * 读取文件信息
+     * @access public
+     * @param string $filename 文件名
+     * @param string $name 信息名 mtime或者content
+     * @return boolean
+     */
+    public function get($filename, $name, $type = '')
+    {
+        if (!isset($this->contents[$filename])) {
+            if (!is_file($filename)) return false;
+            $this->contents[$filename] = file_get_contents($filename);
+        }
+        $content = $this->contents[$filename];
+        $info = array(
+            'mtime' => filemtime($filename),
+            'content' => $content
+        );
+        return $info[$name];
     }
 
     /**
@@ -50,20 +86,6 @@ class File extends Storage{
             $this->contents[$filename]=$content;
             return true;
         }
-    }
-
-    /**
-     * 文件追加写入
-     * @access public
-     * @param string $filename  文件名
-     * @param string $content  追加的文件内容
-     * @return boolean        
-     */
-    public function append($filename,$content,$type=''){
-        if(is_file($filename)){
-            $content =  $this->read($filename,$type).$content;
-        }
-        return $this->put($filename,$content,$type);
     }
 
     /**
@@ -99,25 +121,5 @@ class File extends Storage{
     public function unlink($filename,$type=''){
         unset($this->contents[$filename]);
         return is_file($filename) ? unlink($filename) : false; 
-    }
-
-    /**
-     * 读取文件信息
-     * @access public
-     * @param string $filename  文件名
-     * @param string $name  信息名 mtime或者content
-     * @return boolean     
-     */
-    public function get($filename,$name,$type=''){
-        if(!isset($this->contents[$filename])){
-            if(!is_file($filename)) return false;
-           $this->contents[$filename]=file_get_contents($filename);
-        }
-        $content=$this->contents[$filename];
-        $info   =   array(
-            'mtime'     =>  filemtime($filename),
-            'content'   =>  $content
-        );
-        return $info[$name];
     }
 }

@@ -52,7 +52,7 @@
     form {
         width: 20em;
         border-radius: 10px;
-        background-color: white;
+        background-color: #fdffe7;
         margin: 0 auto;
         padding-top: 40px;
         padding-bottom: 20px;
@@ -134,10 +134,10 @@
             </div>
         </form>
     </div>
-    <footer id="footer">
-        <p> Brtobj 版权所有&copy; 2016</p>
-    </footer>
-    <script type="text/javascript" src="/brtobj/Public/js/canvas.js"></script>
+    <!--<footer id="footer">-->
+        <!--<p> Brtobj 版权所有&copy; 2016</p>-->
+    <!--</footer>-->
+    <!--<script type="text/javascript" src="/brtobj/Public/js/canvas.js"></script>-->
 </div>
 </body>
 </html>

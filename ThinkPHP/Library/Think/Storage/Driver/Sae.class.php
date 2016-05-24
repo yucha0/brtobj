@@ -34,18 +34,19 @@ class Sae extends Storage{
     }
 
     /**
-     * 获得SaeKv对象
+     * 文件追加写入
+     * @access public
+     * @param string $filename 文件名
+     * @param string $content 追加的文件内容
+     * @return boolean
      */
-    private function getKv(){
-        static $kv;
-        if(!$kv){
-           $kv  =   new \SaeKV();
-           if(!$kv->init())
-               E('您没有初始化KVDB，请在SAE管理平台初始化KVDB服务');
+    public function append($filename, $content, $type = '')
+    {
+        if ($old_content = $this->read($filename, $type)) {
+            $content = $old_content . $content;
         }
-        return $kv;
+        return $this->put($filename, $content, $type);
     }
-
 
     /**
      * 文件内容读取
@@ -64,6 +65,53 @@ class Sae extends Storage{
             default:
                 return $this->get($filename,'content',$type);
         }        
+    }
+
+    /**
+     * 获得SaeKv对象
+     */
+    private function getKv()
+    {
+        static $kv;
+        if (!$kv) {
+            $kv = new \SaeKV();
+            if (!$kv->init())
+                E('您没有初始化KVDB，请在SAE管理平台初始化KVDB服务');
+        }
+        return $kv;
+    }
+
+    /**
+     * 读取文件信息
+     * @access public
+     * @param string $filename 文件名
+     * @param string $name 信息名 mtime或者content
+     * @return boolean
+     */
+    public function get($filename, $name, $type = '')
+    {
+        switch (strtolower($type)) {
+            case 'html':
+                if (!isset($this->htmls[$filename])) {
+                    $kv = $this->getKv();
+                    $this->htmls[$filename] = $kv->get($filename);
+                }
+                $content = $this->htmls[$filename];
+                break;
+            default:
+                if (!isset($this->contents[$filename])) {
+                    $this->contents[$filename] = $this->mc->get($filename);
+                }
+                $content = $this->contents[$filename];
+        }
+        if (false === $content) {
+            return false;
+        }
+        $info = array(
+            'mtime' => substr($content, 0, 10),
+            'content' => substr($content, 10)
+        );
+        return $info[$name];
     }
 
     /**
@@ -93,20 +141,6 @@ class Sae extends Storage{
                     return true;
                 }            
         }
-    }
-
-    /**
-     * 文件追加写入
-     * @access public
-     * @param string $filename  文件名
-     * @param string $content  追加的文件内容
-     * @return boolean
-     */
-    public function append($filename,$content,$type=''){
-        if($old_content = $this->read($filename,$type)){
-            $content =  $old_content.$content;
-        }
-        return $this->put($filename,$content,$type);
     }
 
     /**
@@ -156,38 +190,6 @@ class Sae extends Storage{
                 unset($this->contents[$filename]);
                 return $this->mc->delete($filename);            
         }        
-    }
-
-    /**
-     * 读取文件信息
-     * @access public
-     * @param string $filename  文件名
-     * @param string $name  信息名 mtime或者content
-     * @return boolean
-     */
-    public function get($filename,$name,$type=''){
-        switch(strtolower($type)){
-            case 'html':
-                if(!isset($this->htmls[$filename])){
-                    $kv = $this->getKv();
-                    $this->htmls[$filename] = $kv->get($filename);
-                }
-                $content = $this->htmls[$filename];
-                break;
-            default:
-                if(!isset($this->contents[$filename])){
-                    $this->contents[$filename] = $this->mc->get($filename);
-                }
-                $content =  $this->contents[$filename];
-        }
-        if(false===$content){
-            return false;
-        }
-        $info   =   array(
-            'mtime'     =>  substr($content,0,10),
-            'content'   =>  substr($content,10)
-        );
-        return $info[$name];        
     }
 
 }

@@ -41,6 +41,16 @@ class Memcache {
 	}
 
     /**
+	 * Session 垃圾回收
+	 * @access public
+	 * @param string $sessMaxLifeTime
+	 */
+	public function gc($sessMaxLifeTime)
+	{
+		return true;
+	}
+
+	/**
      * 读取Session 
      * @access public 
      * @param string $sessID 
@@ -66,14 +76,5 @@ class Memcache {
      */
 	public function destroy($sessID) {
 		return $this->handle->delete($this->sessionName.$sessID);
-	}
-
-    /**
-     * Session 垃圾回收
-     * @access public 
-     * @param string $sessMaxLifeTime 
-     */
-	public function gc($sessMaxLifeTime) {
-		return true;
 	}
 }

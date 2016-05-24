@@ -169,107 +169,6 @@ class ETCore{
 	}
 
 	//解析替换程序
-	function ParseCode(
-				$FileList = '',
-				$CacheFile = ''
-			){
-		//模板数据
-		$ShowTPL = '';
-		//解析续载
-		if (@is_array($FileList) && $FileList!='include_page'){
-			foreach ($FileList AS $K=>$V) {
-				$ShowTPL .= $this->reader($V.$K);
-			}
-		}else{
-
-			
-			//如果指定文件地址则载入
-			$SourceFile = ($FileList!='')?$FileList:$this->FileDir[$this->ThisFile].$this->ThisFile;
-			
-			if(!is_file($SourceFile) && $this->Copyright==1){
-				die('Sorry, The file <b>'.$SourceFile.'</b> does not exist.');
-			}
-			
-			$ShowTPL = $this->reader($SourceFile);
-		}
-		
-		//引用模板处理
-		$ShowTPL = $this->inc_preg($ShowTPL);
-		
-		//检测run方法
-		$run = 0;
-		if (eregi("run:",$ShowTPL)){
-			$run	 = 1;
-			//Fix =
-			$ShowTPL = preg_replace('/(\{|<!--\s*)run:(\}|\s*-->)\s*=/','{run:}echo ',$ShowTPL);
-			$ShowTPL = preg_replace('/(\{|<!--\s*)run:\s*=/','{run:echo ',$ShowTPL);
-			//Fix Run 1
-			$ShowTPL = preg_replace('/(\{|<!--\s*)run:(\}|\s*-->)\s*(.+?)\s*(\{|<!--\s*)\/run(\}|\s*-->)/is', '(T_T)\\3;(T_T!)',$ShowTPL);
-		}
-		
-		//Fix XML
-		if (eregi("<?xml",$ShowTPL)){
-			$ShowTPL = @preg_replace('/<\?(xml.+?)\?>/is', '<ET>\\1</ET>', $ShowTPL);
-		}
-		
-		//修复代码中\n换行错误
-		$ShowTPL = str_replace('\\','\\\\',$ShowTPL);
- 		//修复双引号问题
-		$ShowTPL = str_replace('"','\"',$ShowTPL);
-		
-		//编译运算
- 		$ShowTPL = @preg_replace($this->Compile, $this->Analysis, $ShowTPL);
- 		
-		//分析图片地址
- 		$ShowTPL = $this->ImgCheck($ShowTPL);
- 		
- 		//Fix 模板中金钱符号
- 		$ShowTPL = str_replace('$','\$',$ShowTPL);
- 		
-			//修复php运行错误
-			$ShowTPL = @preg_replace("/\";(.+?)echo\"/e", '$this->FixPHP(\'\\1\')', $ShowTPL);
-			
-			//Fix Run 2
-			if ($run==1){
-				$ShowTPL = preg_replace("/\(T_T\)(.+?)\(T_T!\)/ise", '$this->FixPHP(\'\\1\')', $ShowTPL);
-			}
-			
-			//还原xml
-			$ShowTPL = (strrpos($ShowTPL,'<ET>'))?@preg_replace('/ET>(.+?)<\/ET/is', '?\\1?', $ShowTPL):$ShowTPL;
-			
-			//修复"问题
-			$ShowTPL = str_replace('echo ""','echo "\"',$ShowTPL);
-			
-			
-			//从数组中将变量导入到当前的符号表
-			@extract($this->Value());
-			ob_start();
-			ob_implicit_flush(0);
-				@eval('echo "'.$ShowTPL.'";');
-				$contents = ob_get_contents();
-			ob_end_clean();
-			
-			//Cache htm
-			if($this->HtmID){
-				$this->writer($this->HtmDir.$this->HtmID,$this->Hacker."?>".$contents);
-			}
-			
-			
-			//编译模板
-			if ($this->RunType=='Cache'){
-				$this->CompilePHP($ShowTPL,$CacheFile);
-			}
-			
-			
-			//错误检查
-			if(strlen($contents)<=0){
-				//echo $ShowTPL;
-				die('<br>Sorry, Error or complicated syntax error exists in '.$SourceFile.' file.');
-			}
-			
-		return $contents;
-	}
-
 
 	/**
 	*  多语言
@@ -351,116 +250,54 @@ class ETCore{
 	}
 
 	/**
-	*  inc引用函数
+	 *    写入函数
+	 *    writer(文件名,写入数据, 写入数据方式);
 	*/
-	function inc_preg(
-				$content
+	function writer(
+		$filename,
+		$data = '',
+		$mode = 'w'
 			){
-		return preg_replace('/<\!--\s*\#include\s*file\s*=(\"|\')([a-zA-Z0-9_\.\|]{1,100})(\"|\')\s*-->/eis', '$this->inc("\\2")', preg_replace('/(\{\s*|<!--\s*)inc\:([^\{\} ]{1,100})(\s*\}|\s*-->)/eis', '$this->inc("\\2")', $content));
-	}
-
-
-	/**
-	*  引用函数运算
-	*/
-	function inc(
-				$Files = ''
-			){
-		if($Files){
-			if (!strrpos($Files,$this->Ext)){
-				$Files	= $Files.".".$this->Ext;
-			}
-			$FileLs		= $this->TemplateDir.$Files;
-			$contents	=$this->ParseCode($FileLs,$Files);
-			
-			if($this->RunType=='Cache'){
-				//引用模板
-				$this->IncList[] = $Files;
-				$cache_file = $this->CacheDir.$this->TplID.$Files.".".$this->Language.".php";
-				return "<!-- ET_inc_cache[".$Files."] -->
-<!-- IF(@is_file('".$cache_file."')) -->{inc_php:".$cache_file."}
-<!-- IF(\$EaseTemplate3_Cache) -->{run:@eval('echo \"'.\$EaseTemplate3_Cache.'\";')}<!-- END -->
-<!-- END -->";
-			}elseif($this->RunType=='MemCache'){
-				//cache date
-				memcache_set($this->Emc,$Files.'_date', time()) OR die("Failed to save data at the server.");
-				memcache_set($this->Emc,$Files, $contents) OR die("Failed to save data at the server");
-				return "<!-- ET_inc_cache[".$Files."] -->".$contents;
-			}else{
-				//引用模板
-				$this->IncList[] = $Files;
-				return $contents;
-			}
+		if (trim($filename)) {
+			$file = @fopen($filename, $mode);
+			$filedata = @fwrite($file, $data);
+			@fclose($file);
+		}
+		if (!is_file($filename)) {
+			die('Sorry,' . $filename . ' file write in failed!');
 		}
 	}
 
+	function FixPHP(
+		$content = ''
+	)
+	{
+		$content = str_replace('\\\\', '\\', $content);
+		return '";' . str_replace('\\"', '"', str_replace('\$', '$', $content)) . 'echo"';
+	}
 
 	/**
-	*  编译解析处理
+	 *  连载函数
 	*/
-	function CompilePHP(
-				$content='',
-				$cachename = ''
+	function n()
+	{
+		//连载模板
+		$this->FileList[$this->ThisFile] = $this->FileDir[$this->ThisFile];
+	}
+
+	/**
+	 *    输出模板内容
+	 *   Filename    连载编译输出文件名
+	*/
+	function r(
+		$Filename = ''
 			){
-		if ($content){
-			//如果没有安全文件则自动创建
-			if($this->RunType=='Cache' && !is_file($this->CacheDir.'index.htm')){
-				$Ease_name   = 'Ease Template!';
-				$Ease_base   = "<title>$Ease_name</title><a href='http://www.systn.com'>$Ease_name</a>";
-				$this->writer($this->CacheDir.'index.htm',$Ease_base);
-				$this->writer($this->CacheDir.'index.html',$Ease_base);
-				$this->writer($this->CacheDir.'default.htm',$Ease_base);
-			}
-			
-			
-			//编译记录
-			$content = str_replace("\\","\\\\",$content);
-			$content = str_replace("'","\'",$content);
-			$content = str_replace('echo"";',"",$content);		//替换多余数据
-	
-			$wfile = ($cachename)?$cachename:$this->ThisFile;
-			$this->writer($this->FileName($wfile,$this->TplID) ,$this->Hacker.'$EaseTemplate3_Cache = \''.$content.'\';');
-		}
+		return $this->output($Filename);
 	}
 	
 	
 	//修复PHP执行时产生的错误
-	function FixPHP(
-				$content=''
-			){
-		$content = str_replace('\\\\','\\',$content);
-		return '";'.str_replace('\\"','"',str_replace('\$','$',$content)).'echo"';
-	}
-	
-	
-	/**
-	*  检测缓存是否要更新
-	*	filename	缓存文件名
-	*	settime		指定事件则提供更新，只用于memcache
-	*/
-	function FileUpdate($filname,$settime=0){
-		
-		//检测设置模板文件
-		if (is_array($this->IncFile)){
-			unset($k,$v);
-			$update		= 0;
-			$settime	= ($settime>0)?$settime:@filemtime($filname);
-			foreach ($this->IncFile AS $k=>$v) {
-				if (@filemtime($v)>$settime){$update = 1;}
-			}
-			//更新缓存
-			if($update==1){
-				return false;
-			}else {
-				return $filname;
-			}
-			
-		}else{
-			return $filname;
-		}
-	}
-	
-	
+
 	/**
 	*	输出运算
 	*   Filename	连载编译输出文件名
@@ -602,37 +439,207 @@ class ETCore{
 		}
 	}
 
-
 	/**
-	*  连载函数
-	*/
-	function n(){
-		//连载模板
-		$this->FileList[$this->ThisFile] = $this->FileDir[$this->ThisFile];
+	 *    读取函数
+	 *    reader(文件名);
+	 */
+	function reader(
+		$filename
+	)
+	{
+		$get_fun = @get_defined_functions();
+		return (in_array('file_get_contents', $get_fun['internal'])) ? @file_get_contents($filename) : @implode("", @file($filename));
 	}
 
+	/**
+	 *    解析文件
+	 */
+	function FileName(
+		$name,
+		$id = '1'
+	)
+	{
+		$extdir = explode("/", $name);
+		$dircnt = @count($extdir) - 1;
+		$extdir[$dircnt] = $id . $extdir[$dircnt];
+
+		return $this->CacheDir . implode("_", $extdir) . "." . $this->Language . '.php';
+	}
 
 	/**
-	*	输出模板内容
-	*   Filename	连载编译输出文件名
+	 *  检测缓存是否要更新
+	 *    filename    缓存文件名
+	 *    settime        指定事件则提供更新，只用于memcache
 	*/
-	function r(
-				$Filename = ''
+	function FileUpdate($filname, $settime = 0)
+	{
+
+		//检测设置模板文件
+		if (is_array($this->IncFile)) {
+			unset($k, $v);
+			$update = 0;
+			$settime = ($settime > 0) ? $settime : @filemtime($filname);
+			foreach ($this->IncFile AS $k => $v) {
+				if (@filemtime($v) > $settime) {
+					$update = 1;
+				}
+			}
+			//更新缓存
+			if ($update == 1) {
+				return false;
+			} else {
+				return $filname;
+			}
+
+		} else {
+			return $filname;
+		}
+	}
+
+	/**
+	 *  引用函数运算
+	*/
+	function inc(
+		$Files = ''
 			){
-		return $this->output($Filename);
+		if ($Files) {
+			if (!strrpos($Files, $this->Ext)) {
+				$Files = $Files . "." . $this->Ext;
+			}
+			$FileLs = $this->TemplateDir . $Files;
+			$contents = $this->ParseCode($FileLs, $Files);
+
+			if ($this->RunType == 'Cache') {
+				//引用模板
+				$this->IncList[] = $Files;
+				$cache_file = $this->CacheDir . $this->TplID . $Files . "." . $this->Language . ".php";
+				return "<!-- ET_inc_cache[" . $Files . "] -->
+<!-- IF(@is_file('" . $cache_file . "')) -->{inc_php:" . $cache_file . "}
+<!-- IF(\$EaseTemplate3_Cache) -->{run:@eval('echo \"'.\$EaseTemplate3_Cache.'\";')}<!-- END -->
+<!-- END -->";
+			} elseif ($this->RunType == 'MemCache') {
+				//cache date
+				memcache_set($this->Emc, $Files . '_date', time()) OR die("Failed to save data at the server.");
+				memcache_set($this->Emc, $Files, $contents) OR die("Failed to save data at the server");
+				return "<!-- ET_inc_cache[" . $Files . "] -->" . $contents;
+			} else {
+				//引用模板
+				$this->IncList[] = $Files;
+				return $contents;
+			}
+		}
 	}
 
+	function ParseCode(
+		$FileList = '',
+		$CacheFile = ''
+	)
+	{
+		//模板数据
+		$ShowTPL = '';
+		//解析续载
+		if (@is_array($FileList) && $FileList != 'include_page') {
+			foreach ($FileList AS $K => $V) {
+				$ShowTPL .= $this->reader($V . $K);
+			}
+		} else {
+
+
+			//如果指定文件地址则载入
+			$SourceFile = ($FileList != '') ? $FileList : $this->FileDir[$this->ThisFile] . $this->ThisFile;
+
+			if (!is_file($SourceFile) && $this->Copyright == 1) {
+				die('Sorry, The file <b>' . $SourceFile . '</b> does not exist.');
+			}
+
+			$ShowTPL = $this->reader($SourceFile);
+		}
+
+		//引用模板处理
+		$ShowTPL = $this->inc_preg($ShowTPL);
+
+		//检测run方法
+		$run = 0;
+		if (eregi("run:", $ShowTPL)) {
+			$run = 1;
+			//Fix =
+			$ShowTPL = preg_replace('/(\{|<!--\s*)run:(\}|\s*-->)\s*=/', '{run:}echo ', $ShowTPL);
+			$ShowTPL = preg_replace('/(\{|<!--\s*)run:\s*=/', '{run:echo ', $ShowTPL);
+			//Fix Run 1
+			$ShowTPL = preg_replace('/(\{|<!--\s*)run:(\}|\s*-->)\s*(.+?)\s*(\{|<!--\s*)\/run(\}|\s*-->)/is', '(T_T)\\3;(T_T!)', $ShowTPL);
+		}
+
+		//Fix XML
+		if (eregi("<?xml", $ShowTPL)) {
+			$ShowTPL = @preg_replace('/<\?(xml.+?)\?>/is', '<ET>\\1</ET>', $ShowTPL);
+		}
+
+		//修复代码中\n换行错误
+		$ShowTPL = str_replace('\\', '\\\\', $ShowTPL);
+		//修复双引号问题
+		$ShowTPL = str_replace('"', '\"', $ShowTPL);
+
+		//编译运算
+		$ShowTPL = @preg_replace($this->Compile, $this->Analysis, $ShowTPL);
+
+		//分析图片地址
+		$ShowTPL = $this->ImgCheck($ShowTPL);
+
+		//Fix 模板中金钱符号
+		$ShowTPL = str_replace('$', '\$', $ShowTPL);
+
+		//修复php运行错误
+		$ShowTPL = @preg_replace("/\";(.+?)echo\"/e", '$this->FixPHP(\'\\1\')', $ShowTPL);
+
+		//Fix Run 2
+		if ($run == 1) {
+			$ShowTPL = preg_replace("/\(T_T\)(.+?)\(T_T!\)/ise", '$this->FixPHP(\'\\1\')', $ShowTPL);
+		}
+
+		//还原xml
+		$ShowTPL = (strrpos($ShowTPL, '<ET>')) ? @preg_replace('/ET>(.+?)<\/ET/is', '?\\1?', $ShowTPL) : $ShowTPL;
+
+		//修复"问题
+		$ShowTPL = str_replace('echo ""', 'echo "\"', $ShowTPL);
+
+
+		//从数组中将变量导入到当前的符号表
+		@extract($this->Value());
+		ob_start();
+		ob_implicit_flush(0);
+		@eval('echo "' . $ShowTPL . '";');
+		$contents = ob_get_contents();
+		ob_end_clean();
+
+		//Cache htm
+		if ($this->HtmID) {
+			$this->writer($this->HtmDir . $this->HtmID, $this->Hacker . "?>" . $contents);
+		}
+
+
+		//编译模板
+		if ($this->RunType == 'Cache') {
+			$this->CompilePHP($ShowTPL, $CacheFile);
+		}
+
+
+		//错误检查
+		if (strlen($contents) <= 0) {
+			//echo $ShowTPL;
+			die('<br>Sorry, Error or complicated syntax error exists in ' . $SourceFile . ' file.');
+		}
+
+		return $contents;
+	}
 
 	/**
-	*	打印模板内容
-	*   Filename	连载编译输出文件名
+	 *  inc引用函数
 	*/
-	function p(
-				$Filename = ''
+	function inc_preg(
+		$content
 			){
-		echo $this->output($Filename);
+		return preg_replace('/<\!--\s*\#include\s*file\s*=(\"|\')([a-zA-Z0-9_\.\|]{1,100})(\"|\')\s*-->/eis', '$this->inc("\\2")', preg_replace('/(\{\s*|<!--\s*)inc\:([^\{\} ]{1,100})(\s*\}|\s*-->)/eis', '$this->inc("\\2")', $content));
 	}
-
 
 	/**
 	*	分析图片地址
@@ -667,7 +674,6 @@ class ETCore{
 		return $content;
 	}
 
-
 	/**
 	*	获得所有设置与公共变量
 	*/
@@ -675,6 +681,45 @@ class ETCore{
 		return (is_array($this->ThisValue))?array_merge($this->ThisValue,$GLOBALS):$GLOBALS;
 	}
 
+	/**
+	 *  编译解析处理
+	 */
+	function CompilePHP(
+		$content = '',
+		$cachename = ''
+	)
+	{
+		if ($content) {
+			//如果没有安全文件则自动创建
+			if ($this->RunType == 'Cache' && !is_file($this->CacheDir . 'index.htm')) {
+				$Ease_name = 'Ease Template!';
+				$Ease_base = "<title>$Ease_name</title><a href='http://www.systn.com'>$Ease_name</a>";
+				$this->writer($this->CacheDir . 'index.htm', $Ease_base);
+				$this->writer($this->CacheDir . 'index.html', $Ease_base);
+				$this->writer($this->CacheDir . 'default.htm', $Ease_base);
+			}
+
+
+			//编译记录
+			$content = str_replace("\\", "\\\\", $content);
+			$content = str_replace("'", "\'", $content);
+			$content = str_replace('echo"";', "", $content);        //替换多余数据
+
+			$wfile = ($cachename) ? $cachename : $this->ThisFile;
+			$this->writer($this->FileName($wfile, $this->TplID), $this->Hacker . '$EaseTemplate3_Cache = \'' . $content . '\';');
+		}
+	}
+
+	/**
+	 *    打印模板内容
+	 *   Filename    连载编译输出文件名
+	 */
+	function p(
+		$Filename = ''
+	)
+	{
+		echo $this->output($Filename);
+	}
 
 	/**
 	*	清除设置
@@ -682,7 +727,6 @@ class ETCore{
 	function clear(){
 		$this->RunType = 'Replace';
 	}
-
 
 	/**
 	*  静态文件写入
@@ -717,7 +761,6 @@ class ETCore{
 		}
 	}
 
-
 	/**
 	*  改变静态刷新时间
 	*/
@@ -726,7 +769,6 @@ class ETCore{
 			$this->HtmTime = (int)$times;
 		}
 	}
-
 
 	/**
 	*  静态文件存放的绝对目录
@@ -737,6 +779,18 @@ class ETCore{
 		}
 	}
 
+	/**
+	 *  打印静态内容
+	 */
+	function htm_p(
+		$Name = ''
+	)
+	{
+		$output = $this->HtmCheck($Name);
+		if ($output) {
+			die($this->HtmCheck($Name));
+		}
+	}
 
 	/**
 	*  产生静态文件输出
@@ -756,20 +810,6 @@ class ETCore{
 		}
 	}
 
-
-	/**
-	*  打印静态内容
-	*/
-	function htm_p(
-				$Name = ''
-			){
-		$output = $this->HtmCheck($Name);
-		if ($output){
-			die($this->HtmCheck($Name));
-		}
-	}
-
-
 	/**
 	*  输出静态内容
 	*/
@@ -778,25 +818,6 @@ class ETCore{
 			){
 		return $this->HtmCheck($Name);
 	}
-
-
-
-
-
-	/**
-	*	解析文件
-	*/
-	function FileName(
-				$name,
-				$id = '1'
-			){
-		$extdir = explode("/",$name);
-		$dircnt = @count($extdir) - 1;
-		$extdir[$dircnt] = $id.$extdir[$dircnt];
-		
-		return $this->CacheDir.implode("_",$extdir).".".$this->Language.'.php';
-	}
-
 
 	/**
 	*  检测引入文件
@@ -811,7 +832,6 @@ class ETCore{
 		}
 		return '";'.$code_array.' @include(\''.$parse['path'].'\');echo"';
 	}
-
 
 	/**
 	*	换行函数
@@ -837,7 +857,6 @@ class ETCore{
 		}
 	}
 
-
 	/**
 	*	间隔变色
 	*	Color(两组颜色代码);
@@ -854,7 +873,6 @@ class ETCore{
 		}
 	}
 
-
 	/**
 	*	映射图片地址
 	*/
@@ -866,39 +884,6 @@ class ETCore{
 			$this->ImgDir = (is_array($this->ImgDir))?@array_merge($adds_ary, $this->ImgDir):$adds_ary;
 		}
 	}
-
-
-	/**
-	*	读取函数
-	*	reader(文件名);
-	*/
-	function reader(
-				$filename
-			){
-		$get_fun = @get_defined_functions();
-		return (in_array('file_get_contents',$get_fun['internal']))?@file_get_contents($filename):@implode("", @file($filename));
-	}
-
-
-	/**
-	*	写入函数
-	*	writer(文件名,写入数据, 写入数据方式);
-	*/
-	function writer(
-				$filename,
-				$data = '',
-				$mode='w'
-			){
-		if(trim($filename)){
-			$file = @fopen($filename, $mode);
-			  $filedata = @fwrite($file, $data);
-			@fclose($file);
-		}
-		if(!is_file($filename)){
-			die('Sorry,'.$filename.' file write in failed!');
-		}
-	}
-
 
 	/**
 	*	引入模板系统

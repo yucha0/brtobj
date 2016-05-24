@@ -146,41 +146,6 @@ class Gd{
     }
 
     /**
-     * 裁剪图像
-     * @param  integer $w      裁剪区域宽度
-     * @param  integer $h      裁剪区域高度
-     * @param  integer $x      裁剪区域x坐标
-     * @param  integer $y      裁剪区域y坐标
-     * @param  integer $width  图像保存宽度
-     * @param  integer $height 图像保存高度
-     */
-    public function crop($w, $h, $x = 0, $y = 0, $width = null, $height = null){
-        if(empty($this->img)) E('没有可以被裁剪的图像资源');
-
-        //设置保存尺寸
-        empty($width)  && $width  = $w;
-        empty($height) && $height = $h;
-
-        do {
-            //创建新图像
-            $img = imagecreatetruecolor($width, $height);
-            // 调整默认颜色
-            $color = imagecolorallocate($img, 255, 255, 255);
-            imagefill($img, 0, 0, $color);
-
-            //裁剪
-            imagecopyresampled($img, $this->img, 0, 0, $x, $y, $width, $height, $w, $h);
-            imagedestroy($this->img); //销毁原图
-
-            //设置新图像
-            $this->img = $img;
-        } while(!empty($this->gif) && $this->gifNext());
-
-        $this->info['width']  = $width;
-        $this->info['height'] = $height;
-    }
-
-    /**
      * 生成缩略图
      * @param  integer $width  缩略图最大宽度
      * @param  integer $height 缩略图最大高度
@@ -289,6 +254,61 @@ class Gd{
         $this->crop($w, $h, $x, $y, $width, $height);
     }
 
+    private function gifNext()
+    {
+        ob_start();
+        ob_implicit_flush(0);
+        imagegif($this->img);
+        $img = ob_get_clean();
+
+        $this->gif->image($img);
+        $next = $this->gif->nextImage();
+
+        if ($next) {
+            $this->img = imagecreatefromstring($next);
+            return $next;
+        } else {
+            $this->img = imagecreatefromstring($this->gif->image());
+            return false;
+        }
+    }
+
+    /**
+     * 裁剪图像
+     * @param  integer $w 裁剪区域宽度
+     * @param  integer $h 裁剪区域高度
+     * @param  integer $x 裁剪区域x坐标
+     * @param  integer $y 裁剪区域y坐标
+     * @param  integer $width 图像保存宽度
+     * @param  integer $height 图像保存高度
+     */
+    public function crop($w, $h, $x = 0, $y = 0, $width = null, $height = null)
+    {
+        if (empty($this->img)) E('没有可以被裁剪的图像资源');
+
+        //设置保存尺寸
+        empty($width) && $width = $w;
+        empty($height) && $height = $h;
+
+        do {
+            //创建新图像
+            $img = imagecreatetruecolor($width, $height);
+            // 调整默认颜色
+            $color = imagecolorallocate($img, 255, 255, 255);
+            imagefill($img, 0, 0, $color);
+
+            //裁剪
+            imagecopyresampled($img, $this->img, 0, 0, $x, $y, $width, $height, $w, $h);
+            imagedestroy($this->img); //销毁原图
+
+            //设置新图像
+            $this->img = $img;
+        } while (!empty($this->gif) && $this->gifNext());
+
+        $this->info['width'] = $width;
+        $this->info['height'] = $height;
+    }
+
     /**
      * 添加水印
      * @param  string  $source 水印图片路径
@@ -395,6 +415,8 @@ class Gd{
         //销毁水印资源
         imagedestroy($water);
     }
+
+    /* 切换到GIF的下一帧并保存当前帧，内部使用 */
 
     /**
      * 图像添加文字
@@ -512,25 +534,6 @@ class Gd{
             $col = imagecolorallocatealpha($this->img, $color[0], $color[1], $color[2], $color[3]);
             imagettftext($this->img, $size, $angle, $x + $ox, $y + $oy, $col, $font, $text);
         } while(!empty($this->gif) && $this->gifNext());
-    }
-
-    /* 切换到GIF的下一帧并保存当前帧，内部使用 */
-    private function gifNext(){
-        ob_start();
-        ob_implicit_flush(0);
-        imagegif($this->img);
-        $img = ob_get_clean();
-
-        $this->gif->image($img);
-        $next = $this->gif->nextImage();
-
-        if($next){
-            $this->img = imagecreatefromstring($next);
-            return $next;
-        } else {
-            $this->img = imagecreatefromstring($this->gif->image());
-            return false;
-        }
     }
 
     /**

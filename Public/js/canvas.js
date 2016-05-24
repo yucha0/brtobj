@@ -16,7 +16,7 @@
             l: w,
             z: o(v, "zIndex", -1),
             o: o(v, "opacity", 0.7),
-            c: o(v, "color", "42,130,255"),
+            c: o(v, "color", "255,0,0"),
             n: o(v, "count", 117)
         }
     }

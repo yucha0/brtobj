@@ -103,6 +103,13 @@ class Verify {
         return false;
     }
 
+    private function authcode($str)
+    {
+        $key = substr(md5($this->seKey), 5, 8);
+        $str = substr(md5($str), 8, 10);
+        return md5($key . $str);
+    }
+
     /**
      * 输出验证码并把验证码的值保存的session中
      * 验证码保存到session的格式为： array('verify_code' => '验证码值', 'verify_time' => '验证码创建时间');
@@ -185,6 +192,51 @@ class Verify {
         imagedestroy($this->_image);
     }
 
+    /**
+     * 绘制背景图片
+     * 注：如果验证码输出图片比较大，将占用比较多的系统资源
+     */
+    private function _background()
+    {
+        $path = dirname(__FILE__) . '/Verify/bgs/';
+        $dir = dir($path);
+
+        $bgs = array();
+        while (false !== ($file = $dir->read())) {
+            if ($file[0] != '.' && substr($file, -4) == '.jpg') {
+                $bgs[] = $path . $file;
+            }
+        }
+        $dir->close();
+
+        $gb = $bgs[array_rand($bgs)];
+
+        list($width, $height) = @getimagesize($gb);
+        // Resample
+        $bgImage = @imagecreatefromjpeg($gb);
+        @imagecopyresampled($this->_image, $bgImage, 0, 0, 0, 0, $this->imageW, $this->imageH, $width, $height);
+        @imagedestroy($bgImage);
+    }
+
+    /**
+     * 画杂点
+     * 往图片上写不同颜色的字母或数字
+     */
+    private function _writeNoise()
+    {
+        $codeSet = '2345678abcdefhijkmnpqrstuvwxyz';
+        for ($i = 0; $i < 10; $i++) {
+            //杂点颜色
+            $noiseColor = imagecolorallocate($this->_image, mt_rand(150, 225), mt_rand(150, 225), mt_rand(150, 225));
+            for ($j = 0; $j < 5; $j++) {
+                // 绘杂点
+                imagestring($this->_image, 5, mt_rand(-10, $this->imageW), mt_rand(-10, $this->imageH), $codeSet[mt_rand(0, 29)], $noiseColor);
+            }
+        }
+    }
+
+    /* 加密验证码 */
+
     /** 
      * 画一条由两条连在一起构成的随机正弦函数曲线作干扰线(你可以改成更帅的曲线函数) 
      *      
@@ -240,54 +292,6 @@ class Verify {
                 }
             }
         }
-    }
-
-    /**
-     * 画杂点
-     * 往图片上写不同颜色的字母或数字
-     */
-    private function _writeNoise() {
-        $codeSet = '2345678abcdefhijkmnpqrstuvwxyz';
-        for($i = 0; $i < 10; $i++){
-            //杂点颜色
-            $noiseColor = imagecolorallocate($this->_image, mt_rand(150,225), mt_rand(150,225), mt_rand(150,225));
-            for($j = 0; $j < 5; $j++) {
-                // 绘杂点
-                imagestring($this->_image, 5, mt_rand(-10, $this->imageW),  mt_rand(-10, $this->imageH), $codeSet[mt_rand(0, 29)], $noiseColor);
-            }
-        }
-    }
-
-    /**
-     * 绘制背景图片
-     * 注：如果验证码输出图片比较大，将占用比较多的系统资源
-     */
-    private function _background() {
-        $path = dirname(__FILE__).'/Verify/bgs/';
-        $dir = dir($path);
-
-        $bgs = array();		
-        while (false !== ($file = $dir->read())) {
-            if($file[0] != '.' && substr($file, -4) == '.jpg') {
-                $bgs[] = $path . $file;
-            }
-        }
-        $dir->close();
-
-        $gb = $bgs[array_rand($bgs)];
-
-        list($width, $height) = @getimagesize($gb);
-        // Resample
-        $bgImage = @imagecreatefromjpeg($gb);
-        @imagecopyresampled($this->_image, $bgImage, 0, 0, 0, 0, $this->imageW, $this->imageH, $width, $height);
-        @imagedestroy($bgImage);
-    }
-
-    /* 加密验证码 */
-    private function authcode($str){
-        $key = substr(md5($this->seKey), 5, 8);
-        $str = substr(md5($str), 8, 10);
-        return md5($key . $str);
     }
 
 }
