@@ -62,6 +62,12 @@ class HproseStringStream extends HproseAbstractStream {
         $this->skip($length);
         return $s;
     }
+
+    public function skip($n)
+    {
+        $this->pos += $n;
+    }
+
     public function readuntil($tag) {
         $pos = strpos($this->buffer, $tag, $this->pos);
         if ($pos !== false) {
@@ -74,6 +80,7 @@ class HproseStringStream extends HproseAbstractStream {
         }
         return $s;
     }
+
     public function seek($offset, $whence = SEEK_SET) {
         switch ($whence) {
             case SEEK_SET:
@@ -89,20 +96,21 @@ class HproseStringStream extends HproseAbstractStream {
         $this->mark = -1;
         return 0;
     }
+
     public function mark() {
         $this->mark = $this->pos;
     }
+
     public function unmark() {
         $this->mark = -1;
     }
+
     public function reset() {
         if ($this->mark != -1) {
             $this->pos = $this->mark;
         }
     }
-    public function skip($n) {
-        $this->pos += $n;
-    }
+
     public function eof() {
         return ($this->pos >= $this->length);
     }
@@ -137,6 +145,14 @@ class HproseFileStream extends HproseAbstractStream {
     public function close() {
         return fclose($this->fp);
     }
+
+    public function readuntil($char)
+    {
+        $s = '';
+        while ((($c = $this->getc()) != $char) && $c !== false) $s .= $c;
+        return $s;
+    }
+
     public function getc() {
         if ($this->pos == -1) {
             return fgetc($this->fp);
@@ -157,39 +173,7 @@ class HproseFileStream extends HproseAbstractStream {
         }
         return $c;
     }
-    public function read($length) {
-        if ($this->pos == -1) {
-            return fread($this->fp, $length);
-        }
-        elseif ($this->pos < $this->length) {
-            $len = $this->length - $this->pos;
-            if ($len < $length) {
-                $s = fread($this->fp, $length - $len);
-                $this->buf .= $s;
-                $this->length += strlen($s);
-            }
-            $s = substr($this->buf, $this->pos, $length);
-            $this->pos += strlen($s);
-        }
-        elseif ($this->unmark) {
-            $this->buf = "";        
-            $this->pos = -1;
-            $this->length = 0;
-            return fread($this->fp, $length);           
-        }
-        elseif (($s = fread($this->fp, $length)) !== "") {
-            $this->buf .= $s;
-            $len = strlen($s);
-            $this->pos += $len;
-            $this->length += $len;
-        }
-        return $s;
-    }
-    public function readuntil($char) {
-        $s = '';
-        while ((($c = $this->getc()) != $char) && $c !== false) $s .= $c;
-        return $s;
-    }
+
     public function seek($offset, $whence = SEEK_SET) {
         if (fseek($this->fp, $offset, $whence) == 0) {
             $this->buf = "";
@@ -200,6 +184,7 @@ class HproseFileStream extends HproseAbstractStream {
         }
         return -1;
     }
+
     public function mark() {
         $this->unmark = false;
         if ($this->pos == -1) {
@@ -213,15 +198,46 @@ class HproseFileStream extends HproseAbstractStream {
             $this->pos = 0;
         }
     }
+
     public function unmark() {
         $this->unmark = true;
     }
+
     public function reset() {
         $this->pos = 0;
     }
+
     public function skip($n) {
         $this->read($n);
     }
+
+    public function read($length)
+    {
+        if ($this->pos == -1) {
+            return fread($this->fp, $length);
+        } elseif ($this->pos < $this->length) {
+            $len = $this->length - $this->pos;
+            if ($len < $length) {
+                $s = fread($this->fp, $length - $len);
+                $this->buf .= $s;
+                $this->length += strlen($s);
+            }
+            $s = substr($this->buf, $this->pos, $length);
+            $this->pos += strlen($s);
+        } elseif ($this->unmark) {
+            $this->buf = "";
+            $this->pos = -1;
+            $this->length = 0;
+            return fread($this->fp, $length);
+        } elseif (($s = fread($this->fp, $length)) !== "") {
+            $this->buf .= $s;
+            $len = strlen($s);
+            $this->pos += $len;
+            $this->length += $len;
+        }
+        return $s;
+    }
+
     public function eof() {
         if (($this->pos != -1) && ($this->pos < $this->length)) return false;
         return feof($this->fp);
@@ -252,6 +268,14 @@ class HproseProcStream extends HproseAbstractStream {
         fclose($this->pipes[1]);
         proc_close($this->process);
     }
+
+    public function readuntil($char)
+    {
+        $s = '';
+        while ((($c = $this->getc()) != $char) && $c !== false) $s .= $c;
+        return $s;
+    }
+
     public function getc() {
         if ($this->pos == -1) {
             return fgetc($this->pipes[1]);
@@ -272,39 +296,7 @@ class HproseProcStream extends HproseAbstractStream {
         }
         return $c;
     }
-    public function read($length) {
-        if ($this->pos == -1) {
-            return fread($this->pipes[1], $length);
-        }
-        elseif ($this->pos < $this->length) {
-            $len = $this->length - $this->pos;
-            if ($len < $length) {
-                $s = fread($this->pipes[1], $length - $len);
-                $this->buf .= $s;
-                $this->length += strlen($s);
-            }
-            $s = substr($this->buf, $this->pos, $length);
-            $this->pos += strlen($s);
-        }
-        elseif ($this->unmark) {
-            $this->buf = "";        
-            $this->pos = -1;
-            $this->length = 0;
-            return fread($this->pipes[1], $length);           
-        }
-        elseif (($s = fread($this->pipes[1], $length)) !== "") {
-            $this->buf .= $s;
-            $len = strlen($s);
-            $this->pos += $len;
-            $this->length += $len;
-        }
-        return $s;
-    }
-    public function readuntil($char) {
-        $s = '';
-        while ((($c = $this->getc()) != $char) && $c !== false) $s .= $c;
-        return $s;
-    }
+
     public function seek($offset, $whence = SEEK_SET) {
         if (fseek($this->pipes[1], $offset, $whence) == 0) {
             $this->buf = "";
@@ -315,6 +307,7 @@ class HproseProcStream extends HproseAbstractStream {
         }
         return -1;
     }
+
     public function mark() {
         $this->unmark = false;
         if ($this->pos == -1) {
@@ -328,15 +321,46 @@ class HproseProcStream extends HproseAbstractStream {
             $this->pos = 0;
         }
     }
+
     public function unmark() {
         $this->unmark = true;
     }
+
     public function reset() {
         $this->pos = 0;
     }
+
     public function skip($n) {
         $this->read($n);
     }
+
+    public function read($length)
+    {
+        if ($this->pos == -1) {
+            return fread($this->pipes[1], $length);
+        } elseif ($this->pos < $this->length) {
+            $len = $this->length - $this->pos;
+            if ($len < $length) {
+                $s = fread($this->pipes[1], $length - $len);
+                $this->buf .= $s;
+                $this->length += strlen($s);
+            }
+            $s = substr($this->buf, $this->pos, $length);
+            $this->pos += strlen($s);
+        } elseif ($this->unmark) {
+            $this->buf = "";
+            $this->pos = -1;
+            $this->length = 0;
+            return fread($this->pipes[1], $length);
+        } elseif (($s = fread($this->pipes[1], $length)) !== "") {
+            $this->buf .= $s;
+            $len = strlen($s);
+            $this->pos += $len;
+            $this->length += $len;
+        }
+        return $s;
+    }
+
     public function eof() {
         if (($this->pos != -1) && ($this->pos < $this->length)) return false;
         return feof($this->pipes[1]);

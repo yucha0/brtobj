@@ -71,6 +71,22 @@ class Upload {
     }
 
     /**
+     * 设置上传驱动
+     * @param string $driver 驱动名称
+     * @param array $config 驱动配置
+     */
+    private function setDriver($driver = null, $config = null)
+    {
+        $driver = $driver ?: ($this->driver ?: C('FILE_UPLOAD_TYPE'));
+        $config = $config ?: ($this->driverConfig ?: C('UPLOAD_TYPE_CONFIG'));
+        $class = strpos($driver, '\\') ? $driver : 'Think\\Upload\\Driver\\' . ucfirst(strtolower($driver));
+        $this->uploader = new $class($config);
+        if (!$this->uploader) {
+            E("不存在上传驱动：{$name}");
+        }
+    }
+
+    /**
      * 使用 $this->name 获取配置
      * @param  string $name 配置名称
      * @return multitype    配置值
@@ -246,21 +262,6 @@ class Upload {
     }
 
     /**
-     * 设置上传驱动
-     * @param string $driver 驱动名称
-     * @param array $config 驱动配置     
-     */
-    private function setDriver($driver = null, $config = null){
-        $driver = $driver ? : ($this->driver       ? : C('FILE_UPLOAD_TYPE'));
-        $config = $config ? : ($this->driverConfig ? : C('UPLOAD_TYPE_CONFIG'));
-        $class = strpos($driver,'\\')? $driver : 'Think\\Upload\\Driver\\'.ucfirst(strtolower($driver));
-        $this->uploader = new $class($config);
-        if(!$this->uploader){
-            E("不存在上传驱动：{$name}");
-        }
-    }
-
-    /**
      * 检查上传的文件
      * @param array $file 文件信息
      */
@@ -384,24 +385,6 @@ class Upload {
     }
 
     /**
-     * 获取子目录的名称
-     * @param array $file  上传的文件信息
-     */
-    private function getSubPath($filename) {
-        $subpath = '';
-        $rule    = $this->subName;
-        if ($this->autoSub && !empty($rule)) {
-            $subpath = $this->getName($rule, $filename) . '/';
-
-            if(!empty($subpath) && !$this->uploader->mkdir($this->savePath . $subpath)){
-                $this->error = $this->uploader->getError();
-                return false;
-            }
-        }
-        return $subpath;
-    }
-
-    /**
      * 根据指定的规则获取文件或目录名称
      * @param  array  $rule     规则
      * @param  string $filename 原文件名
@@ -424,6 +407,25 @@ class Upload {
             }
         }
         return $name;
+    }
+
+    /**
+     * 获取子目录的名称
+     * @param array $file 上传的文件信息
+     */
+    private function getSubPath($filename)
+    {
+        $subpath = '';
+        $rule = $this->subName;
+        if ($this->autoSub && !empty($rule)) {
+            $subpath = $this->getName($rule, $filename) . '/';
+
+            if (!empty($subpath) && !$this->uploader->mkdir($this->savePath . $subpath)) {
+                $this->error = $this->uploader->getError();
+                return false;
+            }
+        }
+        return $subpath;
     }
 
 }

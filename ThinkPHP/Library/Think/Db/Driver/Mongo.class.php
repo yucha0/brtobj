@@ -59,40 +59,6 @@ class Mongo extends Driver {
     }
 
     /**
-     * 切换当前操作的Db和Collection
-     * @access public
-     * @param string $collection  collection
-     * @param string $db  db
-     * @param boolean $master 是否主服务器
-     * @return void
-     */
-    public function switchCollection($collection,$db='',$master=true){
-        // 当前没有连接 则首先进行数据库连接
-        if ( !$this->_linkID ) $this->initConnect($master);
-        try{
-            if(!empty($db)) { // 传人Db则切换数据库
-                // 当前MongoDb对象
-                $this->_dbName  =  $db;
-                $this->_mongo = $this->_linkID->selectDb($db);
-            }
-            // 当前MongoCollection对象
-            if($this->config['debug']) {
-                $this->queryStr   =  $this->_dbName.'.getCollection('.$collection.')';
-            }
-            if($this->_collectionName != $collection) {
-                $this->queryTimes++;
-                N('db_query',1); // 兼容代码                
-                $this->debug(true);
-                $this->_collection =  $this->_mongo->selectCollection($collection);
-                $this->debug(false);
-                $this->_collectionName  = $collection; // 记录当前Collection名称
-            }
-        }catch (MongoException $e){
-            E($e->getMessage());
-        }
-    }
-
-    /**
      * 释放查询结果
      * @access public
      */
@@ -220,6 +186,41 @@ class Mongo extends Driver {
     }
 
     /**
+     * 切换当前操作的Db和Collection
+     * @access public
+     * @param string $collection collection
+     * @param string $db db
+     * @param boolean $master 是否主服务器
+     * @return void
+     */
+    public function switchCollection($collection, $db = '', $master = true)
+    {
+        // 当前没有连接 则首先进行数据库连接
+        if (!$this->_linkID) $this->initConnect($master);
+        try {
+            if (!empty($db)) { // 传人Db则切换数据库
+                // 当前MongoDb对象
+                $this->_dbName = $db;
+                $this->_mongo = $this->_linkID->selectDb($db);
+            }
+            // 当前MongoCollection对象
+            if ($this->config['debug']) {
+                $this->queryStr = $this->_dbName . '.getCollection(' . $collection . ')';
+            }
+            if ($this->_collectionName != $collection) {
+                $this->queryTimes++;
+                N('db_query', 1); // 兼容代码                
+                $this->debug(true);
+                $this->_collection = $this->_mongo->selectCollection($collection);
+                $this->debug(false);
+                $this->_collectionName = $collection; // 记录当前Collection名称
+            }
+        } catch (MongoException $e) {
+            E($e->getMessage());
+        }
+    }
+
+    /**
      * 插入多条记录
      * @access public
      * @param array $dataList 数据
@@ -301,6 +302,191 @@ class Mongo extends Driver {
     }
 
     /**
+     * where分析
+     * @access protected
+     * @param mixed $where
+     * @return array
+     */
+    public function parseWhere($where)
+    {
+        $query = array();
+        $return = array();
+        $_logic = '$and';
+        if (isset($where['_logic'])) {
+            $where['_logic'] = strtolower($where['_logic']);
+            $_logic = in_array($where['_logic'], array('or', 'xor', 'nor', 'and')) ? '$' . $where['_logic'] : $_logic;
+            unset($where['_logic']);
+        }
+        foreach ($where as $key => $val) {
+            if ('_id' != $key && 0 === strpos($key, '_')) {
+                // 解析特殊条件表达式
+                $parse = $this->parseThinkWhere($key, $val);
+                $query = array_merge($query, $parse);
+            } else {
+                // 查询字段的安全过滤
+                if (!preg_match('/^[A-Z_\|\&\-.a-z0-9]+$/', trim($key))) {
+                    E(L('_ERROR_QUERY_') . ':' . $key);
+                }
+                $key = trim($key);
+                if (strpos($key, '|')) {
+                    $array = explode('|', $key);
+                    $str = array();
+                    foreach ($array as $k) {
+                        $str[] = $this->parseWhereItem($k, $val);
+                    }
+                    $query['$or'] = $str;
+                } elseif (strpos($key, '&')) {
+                    $array = explode('&', $key);
+                    $str = array();
+                    foreach ($array as $k) {
+                        $str[] = $this->parseWhereItem($k, $val);
+                    }
+                    $query = array_merge($query, $str);
+                } else {
+                    $str = $this->parseWhereItem($key, $val);
+                    $query = array_merge($query, $str);
+                }
+            }
+        }
+        if ($_logic == '$and')
+            return $query;
+
+        foreach ($query as $key => $val)
+            $return[$_logic][] = array($key => $val);
+
+        return $return;
+    }
+
+    /**
+     * 特殊条件分析
+     * @access protected
+     * @param string $key
+     * @param mixed $val
+     * @return string
+     */
+    protected function parseThinkWhere($key, $val)
+    {
+        $query = array();
+        $_logic = array('or', 'xor', 'nor', 'and');
+
+        switch ($key) {
+            case '_query': // 字符串模式查询条件
+                parse_str($val, $query);
+                if (isset($query['_logic']) && strtolower($query['_logic']) == 'or') {
+                    unset($query['_logic']);
+                    $query['$or'] = $query;
+                }
+                break;
+            case '_complex': // 子查询模式查询条件
+                $__logic = strtolower($val['_logic']);
+                if (isset($val['_logic']) && in_array($__logic, $_logic)) {
+                    unset($val['_logic']);
+                    $query['$' . $__logic] = $val;
+                }
+                break;
+            case '_string':// MongoCode查询
+                $query['$where'] = new \MongoCode($val);
+                break;
+        }
+        //兼容 MongoClient OR条件查询方法
+        if (isset($query['$or']) && !is_array(current($query['$or']))) {
+            $val = array();
+            foreach ($query['$or'] as $k => $v)
+                $val[] = array($k => $v);
+            $query['$or'] = $val;
+        }
+        return $query;
+    }
+
+    /**
+     * where子单元分析
+     * @access protected
+     * @param string $key
+     * @param mixed $val
+     * @return array
+     */
+    protected function parseWhereItem($key, $val)
+    {
+        $query = array();
+        if (is_array($val)) {
+            if (is_string($val[0])) {
+                $con = strtolower($val[0]);
+                if (in_array($con, array('neq', 'ne', 'gt', 'egt', 'gte', 'lt', 'lte', 'elt'))) { // 比较运算
+                    $k = '$' . $this->comparison[$con];
+                    $query[$key] = array($k => $val[1]);
+                } elseif ('like' == $con) { // 模糊查询 采用正则方式
+                    $query[$key] = new \MongoRegex("/" . $val[1] . "/");
+                } elseif ('mod' == $con) { // mod 查询
+                    $query[$key] = array('$mod' => $val[1]);
+                } elseif ('regex' == $con) { // 正则查询
+                    $query[$key] = new \MongoRegex($val[1]);
+                } elseif (in_array($con, array('in', 'nin', 'not in'))) { // IN NIN 运算
+                    $data = is_string($val[1]) ? explode(',', $val[1]) : $val[1];
+                    $k = '$' . $this->comparison[$con];
+                    $query[$key] = array($k => $data);
+                } elseif ('all' == $con) { // 满足所有指定条件
+                    $data = is_string($val[1]) ? explode(',', $val[1]) : $val[1];
+                    $query[$key] = array('$all' => $data);
+                } elseif ('between' == $con) { // BETWEEN运算
+                    $data = is_string($val[1]) ? explode(',', $val[1]) : $val[1];
+                    $query[$key] = array('$gte' => $data[0], '$lte' => $data[1]);
+                } elseif ('not between' == $con) {
+                    $data = is_string($val[1]) ? explode(',', $val[1]) : $val[1];
+                    $query[$key] = array('$lt' => $data[0], '$gt' => $data[1]);
+                } elseif ('exp' == $con) { // 表达式查询
+                    $query['$where'] = new \MongoCode($val[1]);
+                } elseif ('exists' == $con) { // 字段是否存在
+                    $query[$key] = array('$exists' => (bool)$val[1]);
+                } elseif ('size' == $con) { // 限制属性大小
+                    $query[$key] = array('$size' => intval($val[1]));
+                } elseif ('type' == $con) { // 限制字段类型 1 浮点型 2 字符型 3 对象或者MongoDBRef 5 MongoBinData 7 MongoId 8 布尔型 9 MongoDate 10 NULL 15 MongoCode 16 32位整型 17 MongoTimestamp 18 MongoInt64 如果是数组的话判断元素的类型
+                    $query[$key] = array('$type' => intval($val[1]));
+                } else {
+                    $query[$key] = $val;
+                }
+                return $query;
+            }
+        }
+        $query[$key] = $val;
+        return $query;
+    }
+
+    /**
+     * set分析
+     * @access protected
+     * @param array $data
+     * @return string
+     */
+    protected function parseSet($data)
+    {
+        $result = array();
+        foreach ($data as $key => $val) {
+            if (is_array($val)) {
+                switch ($val[0]) {
+                    case 'inc':
+                        $result['$inc'][$key] = (int)$val[1];
+                        break;
+                    case 'set':
+                    case 'unset':
+                    case 'push':
+                    case 'pushall':
+                    case 'addtoset':
+                    case 'pop':
+                    case 'pull':
+                    case 'pullall':
+                        $result['$' . $val[0]][$key] = $val[1];
+                        break;
+                    default:
+                        $result['$set'][$key] = $val;
+                }
+            } else {
+                $result['$set'][$key] = $val;
+            }
+        }
+        return $result;
+    }
+
+    /**
      * 删除记录
      * @access public
      * @param array $options 表达式
@@ -351,6 +537,19 @@ class Mongo extends Driver {
         } catch (\MongoCursorException $e) {
             E($e->getMessage());
         }
+    }
+
+    /**
+     * 查找某个记录
+     * @access public
+     * @param array $options 表达式
+     * @return array
+     */
+    public function find($options = array())
+    {
+        $options['limit'] = 1;
+        $find = $this->select($options);
+        return array_shift($find);
     }
 
     /**
@@ -419,15 +618,72 @@ class Mongo extends Driver {
     }
 
     /**
-     * 查找某个记录
-     * @access public
-     * @param array $options 表达式
+     * field分析
+     * @access protected
+     * @param mixed $fields
      * @return array
      */
-    public function find($options=array()){
-        $options['limit'] = 1;
-        $find = $this->select($options);
-        return array_shift($find);
+    public function parseField($fields)
+    {
+        if (empty($fields)) {
+            $fields = array();
+        }
+        if (is_string($fields)) {
+            $_fields = explode(',', $fields);
+            $fields = array();
+            foreach ($_fields as $f)
+                $fields[$f] = true;
+        } elseif (is_array($fields)) {
+            $_fields = $fields;
+            $fields = array();
+            foreach ($_fields as $f => $v) {
+                if (is_numeric($f))
+                    $fields[$v] = true;
+                else
+                    $fields[$f] = $v ? true : false;
+            }
+        }
+        return $fields;
+    }
+
+    /**
+     * order分析
+     * @access protected
+     * @param mixed $order
+     * @return array
+     */
+    protected function parseOrder($order)
+    {
+        if (is_string($order)) {
+            $array = explode(',', $order);
+            $order = array();
+            foreach ($array as $key => $val) {
+                $arr = explode(' ', trim($val));
+                if (isset($arr[1])) {
+                    $arr[1] = $arr[1] == 'asc' ? 1 : -1;
+                } else {
+                    $arr[1] = 1;
+                }
+                $order[$arr[0]] = $arr[1];
+            }
+        }
+        return $order;
+    }
+
+    /**
+     * limit分析
+     * @access protected
+     * @param mixed $limit
+     * @return array
+     */
+    protected function parseLimit($limit)
+    {
+        if (strpos($limit, ',')) {
+            $array = explode(',', $limit);
+        } else {
+            $array = array(0, $limit);
+        }
+        return $array;
     }
 
     /**
@@ -562,7 +818,7 @@ class Mongo extends Driver {
     public function getDB(){
         return $this->_mongo;
     }
-    
+
     /**
      * 取得当前集合的对象
      * @access public
@@ -570,252 +826,5 @@ class Mongo extends Driver {
      */
     public function getCollection(){
         return $this->_collection;
-    }
-
-    /**
-     * set分析
-     * @access protected
-     * @param array $data
-     * @return string
-     */
-    protected function parseSet($data) {
-        $result   =  array();
-        foreach ($data as $key=>$val){
-            if(is_array($val)) {
-                switch($val[0]) {
-                    case 'inc':
-                        $result['$inc'][$key]  =  (int)$val[1];
-                        break;
-                    case 'set':
-                    case 'unset':
-                    case 'push':
-                    case 'pushall':
-                    case 'addtoset':
-                    case 'pop':
-                    case 'pull':
-                    case 'pullall':
-                        $result['$'.$val[0]][$key] = $val[1];
-                        break;
-                    default:
-                        $result['$set'][$key] =  $val;
-                }
-            }else{
-                $result['$set'][$key]    = $val;
-            }
-        }
-        return $result;
-    }
-
-    /**
-     * order分析
-     * @access protected
-     * @param mixed $order
-     * @return array
-     */
-    protected function parseOrder($order) {
-        if(is_string($order)) {
-            $array   =  explode(',',$order);
-            $order   =  array();
-            foreach ($array as $key=>$val){
-                $arr  =  explode(' ',trim($val));
-                if(isset($arr[1])) {
-                    $arr[1]  =  $arr[1]=='asc'?1:-1;
-                }else{
-                    $arr[1]  =  1;
-                }
-                $order[$arr[0]]    = $arr[1];
-            }
-        }
-        return $order;
-    }
-
-    /**
-     * limit分析
-     * @access protected
-     * @param mixed $limit
-     * @return array
-     */
-    protected function parseLimit($limit) {
-        if(strpos($limit,',')) {
-            $array  =  explode(',',$limit);
-        }else{
-            $array   =  array(0,$limit);
-        }
-        return $array;
-    }
-
-    /**
-     * field分析
-     * @access protected
-     * @param mixed $fields
-     * @return array
-     */
-    public function parseField($fields){
-        if(empty($fields)) {
-            $fields    = array();
-        }
-        if(is_string($fields)) {
-            $_fields    = explode(',',$fields);
-            $fields     = array();
-            foreach ($_fields as $f)
-                $fields[$f] = true;
-        }elseif(is_array($fields)) {
-            $_fields    = $fields;
-            $fields     = array();
-            foreach ($_fields as $f=>$v) {
-                if(is_numeric($f))
-                    $fields[$v] = true;
-                else
-                    $fields[$f] = $v ? true : false;
-            }
-        }
-        return $fields;
-    }
-
-    /**
-     * where分析
-     * @access protected
-     * @param mixed $where
-     * @return array
-     */
-    public function parseWhere($where){
-        $query   = array();
-        $return     = array();
-        $_logic     = '$and';
-        if(isset($where['_logic'])){
-            $where['_logic']    = strtolower($where['_logic']);
-            $_logic             = in_array($where['_logic'], array('or','xor','nor', 'and'))?'$'.$where['_logic']:$_logic;
-            unset($where['_logic']);
-        }
-        foreach ($where as $key=>$val){
-            if('_id' != $key && 0===strpos($key,'_')) {
-                // 解析特殊条件表达式
-                $parse   = $this->parseThinkWhere($key,$val);
-                $query   = array_merge($query,$parse);
-            }else{
-                // 查询字段的安全过滤
-                if(!preg_match('/^[A-Z_\|\&\-.a-z0-9]+$/',trim($key))){
-                    E(L('_ERROR_QUERY_').':'.$key);
-                }
-                $key = trim($key);
-                if(strpos($key,'|')) {
-                    $array   =  explode('|',$key);
-                    $str   = array();
-                    foreach ($array as $k){
-                        $str[]   = $this->parseWhereItem($k,$val);
-                    }
-                    $query['$or'] =    $str;
-                }elseif(strpos($key,'&')){
-                    $array   =  explode('&',$key);
-                    $str   = array();
-                    foreach ($array as $k){
-                        $str[]   = $this->parseWhereItem($k,$val);
-                    }
-                    $query   = array_merge($query,$str);
-                }else{
-                    $str   = $this->parseWhereItem($key,$val);
-                    $query   = array_merge($query,$str);
-                }
-            }
-        }
-        if($_logic == '$and')
-            return $query;
-        
-        foreach($query as $key=>$val)
-            $return[$_logic][]  = array($key=>$val);
-
-        return $return;
-    }
-
-    /**
-     * 特殊条件分析
-     * @access protected
-     * @param string $key
-     * @param mixed $val
-     * @return string
-     */
-    protected function parseThinkWhere($key,$val) {
-        $query   = array();
-        $_logic = array('or','xor','nor', 'and');
-        
-        switch($key) {
-            case '_query': // 字符串模式查询条件
-                parse_str($val,$query);
-                if(isset($query['_logic']) && strtolower($query['_logic']) == 'or' ) {
-                    unset($query['_logic']);
-                    $query['$or']   =  $query;
-                }
-                break;
-            case '_complex': // 子查询模式查询条件
-                $__logic = strtolower($val['_logic']);
-                if(isset($val['_logic']) && in_array($__logic, $_logic) ) {
-                    unset($val['_logic']);
-                    $query['$'.$__logic]   =  $val;
-                }
-                break;
-            case '_string':// MongoCode查询
-                $query['$where']  = new \MongoCode($val);
-                break;
-        }
-        //兼容 MongoClient OR条件查询方法
-        if(isset($query['$or']) && !is_array(current($query['$or']))) {
-            $val = array();
-            foreach ($query['$or'] as $k=>$v)
-                $val[] = array($k=>$v);
-            $query['$or'] = $val;
-        }
-        return $query;
-    }
-
-    /**
-     * where子单元分析
-     * @access protected
-     * @param string $key
-     * @param mixed $val
-     * @return array
-     */
-    protected function parseWhereItem($key,$val) {
-        $query   = array();
-        if(is_array($val)) {
-            if(is_string($val[0])) {
-                $con  =  strtolower($val[0]);
-                if(in_array($con,array('neq','ne','gt','egt','gte','lt','lte','elt'))) { // 比较运算
-                    $k = '$'.$this->comparison[$con];
-                    $query[$key]  =  array($k=>$val[1]);
-                }elseif('like'== $con){ // 模糊查询 采用正则方式
-                    $query[$key]  =  new \MongoRegex("/".$val[1]."/");  
-                }elseif('mod'==$con){ // mod 查询
-                    $query[$key]   =  array('$mod'=>$val[1]);
-                }elseif('regex'==$con){ // 正则查询
-                    $query[$key]  =  new \MongoRegex($val[1]);
-                }elseif(in_array($con,array('in','nin','not in'))){ // IN NIN 运算
-                    $data = is_string($val[1])? explode(',',$val[1]):$val[1];
-                    $k = '$'.$this->comparison[$con];
-                    $query[$key]  =  array($k=>$data);
-                }elseif('all'==$con){ // 满足所有指定条件
-                    $data = is_string($val[1])? explode(',',$val[1]):$val[1];
-                    $query[$key]  =  array('$all'=>$data);
-                }elseif('between'==$con){ // BETWEEN运算
-                    $data = is_string($val[1])? explode(',',$val[1]):$val[1];
-                    $query[$key]  =  array('$gte'=>$data[0],'$lte'=>$data[1]);
-                }elseif('not between'==$con){
-                    $data = is_string($val[1])? explode(',',$val[1]):$val[1];
-                    $query[$key]  =  array('$lt'=>$data[0],'$gt'=>$data[1]);
-                }elseif('exp'==$con){ // 表达式查询
-                    $query['$where']  = new \MongoCode($val[1]);
-                }elseif('exists'==$con){ // 字段是否存在
-                    $query[$key]  = array('$exists'=>(bool)$val[1]);
-                }elseif('size'==$con){ // 限制属性大小
-                    $query[$key]  = array('$size'=>intval($val[1]));
-                }elseif('type'==$con){ // 限制字段类型 1 浮点型 2 字符型 3 对象或者MongoDBRef 5 MongoBinData 7 MongoId 8 布尔型 9 MongoDate 10 NULL 15 MongoCode 16 32位整型 17 MongoTimestamp 18 MongoInt64 如果是数组的话判断元素的类型
-                    $query[$key]  = array('$type'=>intval($val[1]));
-                }else{
-                    $query[$key]  =  $val;
-                }
-                return $query;
-            }
-        }
-        $query[$key]  =  $val;
-        return $query;
     }
 }
