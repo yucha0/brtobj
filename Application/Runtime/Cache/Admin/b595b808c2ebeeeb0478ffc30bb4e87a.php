@@ -122,9 +122,13 @@
 
         #navi > ul a:hover,
         #navi > ul a:active {
-            background: #44cef6;
-            color: #FFF !important;
-            text-shadow: none !important
+            background: #ebf7fd;
+            /*color: #FFF !important;*/
+            /*text-shadow: none !important;*/
+
+            /*background: #fcfcfc;*/
+            /*outline: 0;*/
+            /*border-color: rgba(0, 0, 0, .16);*/
         }
 
         #navi .navi {
@@ -132,10 +136,22 @@
         }
 
         #navi .navi-active {
-            border-left: 2px solid #44cef6;
+            border-left: 2px solid #2d7091;
             /*border-right: 2px solid #44cef6;*/
             /*box-shadow: 0 0 0 1px rgba(0, 0, 0, .02), 0 4px 10px rgba(0, 0, 0, .09);*/
         }
+
+        #navi .navi-a-active{
+            background: #ebf7fd;
+            /*color: #FFF !important;*/
+            /*text-shadow: none !important;*/
+            /*box-shadow: 0 0 0 1px rgba(0, 0, 0, .02), 0 4px 10px rgba(0, 0, 0, .09);*/
+            /*border-bottom: 2px solid #44cef6;*/
+            /*border-top: 1px solid #44cef6;*/
+            /*border-right: 1px solid #44cef6;*/
+            /*border-bottom: 1px solid #44cef6;*/
+        }
+
 
         #navi .navi-sub {
             display: none;
@@ -216,27 +232,50 @@
 
     </style>
     <script type="text/javascript">
-        function clicktest() {
-            var naviHome = document.getElementById('navi-home');
-            var naviArticles = document.getElementById('navi-articles');
-            var naviComments = document.getElementById('navi-comments');
-            var navisubArticles = document.getElementById('navi-sub-articles');
-            var navisubComments = document.getElementById('navi-sub-comments');
-            naviArticles.className = 'navi-active';
-            naviComments.className = 'navi';
-            navisubArticles.className = 'navi-sub-active';
-            navisubComments.className = 'navi-sub';
+        var broken = false;
+        function show(id) {
+            if(broken){
+                broken = false;
+                return;
+            }
+            var subs = document.getElementById('navi-root').getElementsByTagName('ul');
+            for(var i=0;i<subs.length;i++){
+                subs[i].style.display = "none";
+            }
+            var as = document.getElementById('navi-root').getElementsByTagName('a');
+            for(var i=0;i<as.length;i++){
+                as[i].className = "none";
+            }
+            document.getElementById('navi-home').className = 'navi';
+            document.getElementById('navi-articles').className = 'navi';
+            document.getElementById('navi-msgs').className = 'navi';
+            document.getElementById('navi-comments').className = 'navi';
+            var parent = document.getElementById(id);
+            parent.className = 'navi-active';
+
+            var sub = document.getElementById(id).getElementsByTagName('ul');
+            if(sub.length > 0 ){
+                sub[0].style.display = 'block';
+                var parenta = sub[0].getElementsByTagName('a');
+                parenta[0].className = 'navi-a-active';
+
+            }else{
+                var parenta = parent.getElementsByTagName('a');
+                parenta[0].className = 'navi-a-active';
+            }
         }
-        function clicktest2() {
-            var naviComments = document.getElementById('navi-comments');
-            var naviArticles = document.getElementById('navi-articles');
-            var navisubArticles = document.getElementById('navi-sub-articles');
-            var navisubComments = document.getElementById('navi-sub-comments');
-            naviArticles.className = 'navi';
-            naviComments.className = 'navi-active';
-            navisubArticles.className = 'navi-sub';
-            navisubComments.className = 'navi-sub-active';
+
+        function subshow(id) {
+            var as = document.getElementById('navi-sub-articles').getElementsByTagName('a');
+            for(var i=0;i<as.length;i++){
+                as[i].className = "none";
+
+            }
+            as[id].className = 'navi-a-active';
+
+            broken = true;
         }
+
     </script>
 </head>
 <body>
@@ -247,39 +286,39 @@
                 <img src="/brtobj/Public/pictures/8.jpg" alt="">
             </div>
             <h1 class="blog-name">yucha0</h1>
-            <ul>
-                <li id="navi-home">
-                    <a href="#" onclick="clicktest()">
+            <ul id="navi-root">
+                <li id="navi-home" onclick="show('navi-home')">
+                    <a href="#">
                         <span class="front"></span>
                         <span>后台首页</span>
-                        <span class="end"></span></a>
-
+                        <span class="end"></span>
+                    </a>
                 </li>
-                <li id="navi-articles">
-                    <a href="#" onclick="clicktest()">
+                <li id="navi-articles" onclick="show('navi-articles')">
+                    <a href="#" >
                         <span class="front"></span>
                         <span>文章管理</span>
-                        <span class="end"></span></a>
+                        <span class="end"></span>
                     </a>
                     <ul class="navi-sub" id="navi-sub-articles">
-                        <li><a href="#" onclick="clicktest3()">所有文章</a></li>
-                        <li><a href="#" onclick="null">新文章</a></li>
-                        <li><a href="#" onclick="null">类别</a></li>
-                        <li><a href="#" onclick="null">标签</a></li>
+                        <li><a href="#1" onclick="subshow(0)">所有文章</a></li>
+                        <li><a href="#2" onclick="subshow(1)">新文章</a></li>
+                        <li><a href="#3" onclick="subshow(2)">类别</a></li>
+                        <li><a href="#4" onclick="subshow(3)">标签</a></li>
                     </ul>
                 </li>
-                <li id="navi-msgs">
-                    <a href="#" onclick="clicktest()">
+                <li id="navi-msgs" onclick="show('navi-msgs')">
+                    <a href="#" >
                         <span class="front"></span>
                         <span>留言管理</span>
-                        <span class="end"></span></a>
+                        <span class="end"></span>
                     </a>
                     <ul class="navi-sub" id="navi-sub-msgs">
-                        <li><a href="#" onclick="clicktest3()">所有留言</a></li>
+                        <li><a href="#">所有留言</a></li>
                     </ul>
                 </li>
-                <li id="navi-comments">
-                    <a href="#" onclick="clicktest2()">
+                <li id="navi-comments" onclick="show('navi-comments')">
+                    <a href="#">
                         <span class="front"></span>
                         <span>评论管理</span>
                         <span class="end"></span>
