@@ -53,7 +53,7 @@
             /*font-weight: 400;*/
             text-transform: none;
             /*color: #444;*/
-            color: #777;
+            color: #777777;
             text-align: center;
             margin-bottom: 20px;
         }
@@ -64,6 +64,8 @@
             list-style: none;
         }
 
+        #navi-category >a,
+        #navi-tag >a,
         #navi-home > a,
         #navi-msgs > a,
         #navi-articles > a,
@@ -73,12 +75,14 @@
             margin-bottom: 0;
             padding: 10px 0;
             /*color: #888;*/
-            color: #777;
+            color: #777777;
             display: block;
             text-decoration: none;
             /*padding-left: 10px;*/
         }
 
+        #navi-category ,
+        #navi-tag ,
         #navi-home,
         #navi-articles,
         #navi-msgs,
@@ -102,6 +106,8 @@
             padding-left: 65px;
         }
 
+        #navi-sub-category a,
+        #navi-sub-tag a,
         #navi-sub-articles a,
         #navi-sub-msgs a,
         #navi-sub-comments a {
@@ -110,7 +116,7 @@
             margin-bottom: 0;
             padding: 10px 0;
             /*color: #888;*/
-            color: #777;
+            color: #777777;
             display: block;
             text-decoration: none;
             padding-left: 37px;
@@ -188,7 +194,7 @@
             box-shadow: 0 2px 5px -1px rgba(0, 0, 0, .05);
             background-image: linear-gradient(rgba(200, 200, 200, 0), rgba(200, 200, 200, .12));
             /*color: rgba(0, 0, 0, .4);*/
-            color: #777;
+            color: #777777;
             margin: 0 0 20px;
             /*font-size: 16px;*/
             /*line-height: 25px;*/
@@ -200,7 +206,7 @@
             text-decoration: none;
             /*cursor: ;*/
             /*color: inherit;*/
-            color: #777;
+            color: #777777;
             font-size: 18px;
         }
 
@@ -208,10 +214,10 @@
         #server-info {
             text-align: left;
             padding: 0px 10px;
-            background: #ebf7fd;
+            /*background: #ebf7fd;*/
             color: #2d7091;
             border-collapse: collapse;
-            border: 1px solid rgba(45, 112, 145, .3);
+            border: 2px solid rgba(45, 112, 145, .3);
             margin-left: 20px;
             overflow: hidden;
         }
@@ -226,7 +232,7 @@
         }
 
         #one-glance td a {
-            color: #777;
+            color: #777777;
         }
 
 
@@ -250,6 +256,8 @@
             document.getElementById('navi-articles').className = 'navi';
             document.getElementById('navi-msgs').className = 'navi';
             document.getElementById('navi-comments').className = 'navi';
+            document.getElementById('navi-category').className = 'navi';
+            document.getElementById('navi-tag').className = 'navi';
             var parent = document.getElementById(id);
             parent.className = 'navi-active';
 
@@ -265,8 +273,8 @@
             }
         }
 
-        function subshow(id) {
-            var as = document.getElementById('navi-sub-articles').getElementsByTagName('a');
+        function subshow(tagid,id) {
+            var as = document.getElementById(tagid).getElementsByTagName('a');
             for(var i=0;i<as.length;i++){
                 as[i].className = "none";
 
@@ -287,44 +295,65 @@
             </div>
             <h1 class="blog-name">yucha0</h1>
             <ul id="navi-root">
-                <li id="navi-home" onclick="show('navi-home')">
-                    <a href="#">
+                <li id="navi-home"  class="navi-active"  onclick="show('navi-home')">
+                    <a href="/brtobj/index.php/Admin/index/index" class="navi-a-active">
                         <span class="front"></span>
                         <span>后台首页</span>
                         <span class="end"></span>
                     </a>
                 </li>
                 <li id="navi-articles" onclick="show('navi-articles')">
-                    <a href="#" >
+                    <a href="/brtobj/index.php/Admin/article/allarticle">
                         <span class="front"></span>
                         <span>文章管理</span>
                         <span class="end"></span>
                     </a>
                     <ul class="navi-sub" id="navi-sub-articles">
-                        <li><a href="#1" onclick="subshow(0)">所有文章</a></li>
-                        <li><a href="#2" onclick="subshow(1)">新文章</a></li>
-                        <li><a href="#3" onclick="subshow(2)">类别</a></li>
-                        <li><a href="#4" onclick="subshow(3)">标签</a></li>
+                        <li><a href="/brtobj/index.php/Admin/article/allarticle" onclick="subshow('navi-sub-articles',0)">所有文章</a></li>
+                        <li><a href="#2" onclick="subshow('navi-sub-articles',1)">新文章</a></li>
+                    </ul>
+                </li>
+                <li id="navi-category"  onclick="show('navi-category')">
+                    <a href="/brtobj/index.php/Admin/category/allcategory">
+                        <span class="front"></span>
+                        <span>分类管理</span>
+                        <span class="end"></span>
+                    </a>
+                    <ul class="navi-sub"  id="navi-sub-category">
+                        <li><a href="/brtobj/index.php/Admin/category/allcategory"
+                               onclick="subshow('navi-sub-category',0)">所有分类</a></li>
+                        <li><a href="#" onclick="subshow('navi-sub-category',1)">新分类</a></li>
+                    </ul>
+                </li>
+                <li id="navi-tag"  onclick="show('navi-tag')">
+                    <a href="/brtobj/index.php/Admin/tag/alltag">
+                        <span class="front"></span>
+                        <span>标签管理</span>
+                        <span class="end"></span>
+                    </a>
+                    <ul class="navi-sub" id="navi-sub-tag">
+                        <li><a href="/brtobj/index.php/Admin/tag/alltag" onclick="subshow('navi-sub-tag',0)">所有标签</a></li>
+                        <li><a href="#" onclick="subshow('navi-sub-tag',1)">新标签</a></li>
                     </ul>
                 </li>
                 <li id="navi-msgs" onclick="show('navi-msgs')">
-                    <a href="#" >
+                    <a href="/brtobj/index.php/Admin/message/allmessage" >
                         <span class="front"></span>
                         <span>留言管理</span>
                         <span class="end"></span>
                     </a>
                     <ul class="navi-sub" id="navi-sub-msgs">
-                        <li><a href="#">所有留言</a></li>
+                        <li><a href="/brtobj/index.php/Admin/message/allmessage">所有留言</a></li>
                     </ul>
                 </li>
                 <li id="navi-comments" onclick="show('navi-comments')">
-                    <a href="#">
+                    <a href="/brtobj/index.php/Admin/comment/allcomment">
                         <span class="front"></span>
                         <span>评论管理</span>
                         <span class="end"></span>
                     </a>
                     <ul class="navi-sub" id="navi-sub-comments">
-                        <li><a href="#">所有评论</a></li>
+                        <li><a href="/brtobj/index.php/Admin/comment/allcomment">所有评论</a></li>
                     </ul>
                 </li>
             </ul>
@@ -333,10 +362,10 @@
     <div id="container-right">
         <div id="content">
             <div class="content-title">
-                <a href="#">后台首页</a>
+                <a href="/brtobj/index.php/Admin/index/index">后台首页</a>
             </div>
             <div style="padding: 20px 20px; text-align: left">
-                <span style="margin-left: 20px;margin-bottom: 10px;  display: block; color: #777;">一览:</span>
+                <span style="margin-left: 20px;margin-bottom: 10px;  display: block; color: #777777;">一览:</span>
                 <table id="one-glance">
                     <tr>
                         <td>文章数量</td>
@@ -355,7 +384,7 @@
                 </table>
             </div>
             <div style="padding: 20px 20px; text-align: left">
-                <span style="margin-left: 20px;margin-bottom: 10px;  display: block; color: #777;">服务器状态:</span>
+                <span style="margin-left: 20px;margin-bottom: 10px;  display: block; color: #777777;">服务器状态:</span>
                 <table id="server-info">
                     <tr>
                         <td>服务器IP</td>

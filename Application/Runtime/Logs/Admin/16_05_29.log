@@ -1,0 +1,28 @@
+[ 2016-05-29T20:43:57+08:00 ] ::1 /brtobj/admin/index
+INFO: [ app_init ] --START--
+INFO: Run Behavior\BuildLiteBehavior [ RunTime:0.000054s ]
+INFO: [ app_init ] --END-- [ RunTime:0.007264s ]
+INFO: [ app_begin ] --START--
+INFO: Run Behavior\ReadHtmlCacheBehavior [ RunTime:0.005254s ]
+INFO: [ app_begin ] --END-- [ RunTime:0.005384s ]
+INFO: [ view_parse ] --START--
+INFO: [ template_filter ] --START--
+INFO: Run Behavior\ContentReplaceBehavior [ RunTime:0.000478s ]
+INFO: [ template_filter ] --END-- [ RunTime:0.000654s ]
+NOTIC: [2] file_put_contents(./Application/Runtime/Cache/Admin/b595b808c2ebeeeb0478ffc30bb4e87a.php): failed to open stream: Permission denied /Users/yuchao/www/brtobj/ThinkPHP/Library/Think/Storage/Driver/File.class.php 第 83 行.
+ERR: _STORAGE_WRITE_ERROR_:./Application/Runtime/Cache/Admin/b595b808c2ebeeeb0478ffc30bb4e87a.php
+
+[ 2016-05-29T20:43:58+08:00 ] ::1 /brtobj/admin/index
+INFO: [ app_init ] --START--
+INFO: Run Behavior\BuildLiteBehavior [ RunTime:0.000017s ]
+INFO: [ app_init ] --END-- [ RunTime:0.000242s ]
+INFO: [ app_begin ] --START--
+INFO: Run Behavior\ReadHtmlCacheBehavior [ RunTime:0.000258s ]
+INFO: [ app_begin ] --END-- [ RunTime:0.000324s ]
+INFO: [ view_parse ] --START--
+INFO: [ template_filter ] --START--
+INFO: Run Behavior\ContentReplaceBehavior [ RunTime:0.000064s ]
+INFO: [ template_filter ] --END-- [ RunTime:0.000141s ]
+NOTIC: [2] file_put_contents(./Application/Runtime/Cache/Admin/b595b808c2ebeeeb0478ffc30bb4e87a.php): failed to open stream: Permission denied /Users/yuchao/www/brtobj/ThinkPHP/Library/Think/Storage/Driver/File.class.php 第 83 行.
+ERR: _STORAGE_WRITE_ERROR_:./Application/Runtime/Cache/Admin/b595b808c2ebeeeb0478ffc30bb4e87a.php
+
